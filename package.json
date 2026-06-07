@@ -1,0 +1,9 @@
+{
+  "name": "bni-lanzamientos-scanner-app",
+  "version": "1.0.0",
+  "description": "BNI Scanner - PWA de control de acceso con QR para eventos BNI",
+  "private": true,
+  "scripts": {
+    "deploy": "./deploy.sh"
+  }
+}
