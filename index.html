@@ -181,8 +181,15 @@
         <div id="resultModal" class="fixed inset-0 z-[100] hidden items-end sm:items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeResult()"></div>
             <div id="modalContent" class="glass w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in slide-in-from-bottom duration-300">
-                <!-- Status Icon -->
-                <div id="statusIcon" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto -mt-16 mb-6 shadow-xl border-4 border-white">
+                <!-- Dedicated close button (top-right) -->
+                <button onclick="closeResult()" aria-label="Cerrar" title="Cerrar"
+                    class="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all z-10">
+                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <!-- Status Icon — also tappable to close -->
+                <div id="statusIcon" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto -mt-16 mb-6 shadow-xl border-4 border-white cursor-pointer" onclick="closeResult()" title="Cerrar">
                     <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                     </svg>
@@ -309,17 +316,44 @@
                 list.innerHTML = '';
 
                 if (data.data.length === 0) {
-                    list.innerHTML = '<p class="text-center text-gray-400 py-4">No hay eventos activos hoy.</p>';
+                    list.innerHTML = `
+                        <div class="text-center py-8 space-y-2">
+                            <svg class="w-12 h-12 text-gray-200 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="text-gray-500 font-medium">No hay eventos activos o próximos</p>
+                            <p class="text-xs text-gray-400">Los eventos ya finalizados no aparecen aquí</p>
+                        </div>`;
                     return;
                 }
 
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+
                 data.data.forEach(event => {
-                    const date = new Date(event.event_date).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
+                    const eventDate = new Date(event.event_date);
+                    const dateStr = eventDate.toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' });
+
+                    // Relative label badge
+                    let badge = '';
+                    const eventDay = new Date(eventDate);
+                    eventDay.setHours(0, 0, 0, 0);
+                    if (eventDay.getTime() === today.getTime()) {
+                        badge = '<span class="inline-block text-[9px] font-bold uppercase tracking-wider bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-2">Hoy</span>';
+                    } else if (eventDay.getTime() === tomorrow.getTime()) {
+                        badge = '<span class="inline-block text-[9px] font-bold uppercase tracking-wider bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full ml-2">Mañana</span>';
+                    }
+
                     const btn = document.createElement('button');
                     btn.className = "w-full text-left bg-gray-50 p-4 rounded-2xl border border-gray-100 hover:border-[#D40000] hover:bg-white hover:shadow-md transition-all flex items-center justify-between group";
                     btn.innerHTML = `
                         <div>
-                            <span class="block text-xs font-bold text-[#D40000] uppercase tracking-widest">${date}</span>
+                            <div class="flex items-center">
+                                <span class="text-xs font-bold text-[#D40000] uppercase tracking-widest">${dateStr}</span>
+                                ${badge}
+                            </div>
                             <span class="text-lg font-bold text-gray-800 group-hover:text-[#D40000] transition-colors">${event.name}</span>
                         </div>
                         <svg class="w-6 h-6 text-gray-300 group-hover:text-[#D40000]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
