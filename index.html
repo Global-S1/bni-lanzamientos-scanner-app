@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BNI Scanner - Control de Acceso</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#D40000">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; }
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .bni-gradient {
+            background: linear-gradient(135deg, #D40000 0%, #8b0000 100%);
+        }
+        #reader {
+            border: none !important;
+        }
+        #reader video {
+            border-radius: 1rem;
+        }
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9CA3AF;
+            background: transparent;
+            border: none;
+            padding: 4px;
+            cursor: pointer;
+        }
+        .password-toggle:hover {
+            color: #D40000;
+        }
+        .mode-tab {
+            border: 1px solid rgba(212, 0, 0, 0.16);
+            background: #fff;
+            color: #6B7280;
+        }
+        .mode-tab.active {
+            background: #D40000;
+            color: #fff;
+            border-color: #D40000;
+            box-shadow: 0 12px 24px rgba(212, 0, 0, 0.18);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bni-gradient text-white p-4 shadow-lg sticky top-0 z-50">
+        <div class="flex justify-between items-center max-w-md mx-auto">
+            <div class="flex items-center">
+                <img src="assets/landing/bni_white.svg" alt="BNI" class="h-10 w-auto block" />
+            </div>
+            <button id="logoutBtn" class="hidden text-sm bg-white/20 px-3 py-1 rounded-full border border-white/30 hover:bg-white/30 transition-all">
+                Salir
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 max-w-md mx-auto w-full">
+        
+        <!-- Login Section -->
+        <section id="loginSec" class="mt-8">
+            <div class="glass p-8 rounded-3xl shadow-2xl border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Bienvenido</h2>
+                <p class="text-gray-500 mb-6 font-light">Inicia sesión para comenzar el control de acceso.</p>
+                
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Email Admin</label>
+                        <input type="email" id="email" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#D40000] focus:ring-2 focus:ring-[#D40000]/20 outline-none transition-all" placeholder="ejemplo@bni.com">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Contraseña</label>
+                        <div class="relative">
+                            <input type="password" id="password" required class="w-full px-4 py-3 pr-12 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#D40000] focus:ring-2 focus:ring-[#D40000]/20 outline-none transition-all" placeholder="••••••••">
+                            <button type="button" class="password-toggle" id="togglePasswordBtn" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+                                <svg id="togglePasswordIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bni-gradient text-white font-bold py-4 rounded-xl shadow-lg hover:opacity-90 active:scale-[0.98] transition-all mt-4">
+                        Entrar al Sistema
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Event Selection Section -->
+        <section id="eventSec" class="hidden mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div class="glass p-8 rounded-3xl shadow-2xl">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Seleccionar Evento</h2>
+                <p class="text-gray-500 mb-6 font-light">Elige el evento que vas a escanear hoy.</p>
+                
+                <div id="eventList" class="space-y-3">
+                    <!-- Events will be populated here -->
+                    <div class="animate-pulse flex space-x-4">
+                        <div class="flex-1 space-y-4 py-1">
+                            <div class="h-12 bg-gray-200 rounded-xl"></div>
+                            <div class="h-12 bg-gray-200 rounded-xl"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scanner Section -->
+        <section id="scannerSec" class="hidden space-y-4">
+            <!-- Selected Event Info -->
+            <div class="glass p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                <div>
+                    <span id="selectedEventName" class="text-sm font-bold text-gray-800">Lanzamiento Premium</span>
+                    <div class="flex items-center gap-2">
+                        <span class="status-dot bg-green-500"></span>
+                        <span class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Modo Escáner Activo</span>
+                    </div>
+                </div>
+                <button onclick="changeEvent()" class="text-[#D40000] font-semibold text-xs py-1 px-3 border border-[#D40000]/20 rounded-lg hover:bg-[#D40000]/5">
+                    Cambiar
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button id="scanModeBtn" type="button" class="mode-tab active rounded-2xl px-4 py-3 text-sm font-bold transition-all" onclick="setScannerMode('scan')">
+                    Escanear
+                </button>
+                <button id="searchModeBtn" type="button" class="mode-tab rounded-2xl px-4 py-3 text-sm font-bold transition-all" onclick="setScannerMode('search')">
+                    Buscar por nombre
+                </button>
+            </div>
+
+            <!-- Scanner Box -->
+            <div id="scanPanel" class="space-y-3">
+                <div class="bg-black rounded-3xl overflow-hidden shadow-2xl relative">
+                    <div id="reader"></div>
+                    <!-- Overlay decoration -->
+                    <div class="absolute inset-0 border-2 border-[#D40000]/30 rounded-3xl pointer-events-none m-4 border-dashed animate-pulse"></div>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-sm text-gray-400 font-light">Enfoque el código QR del invitado</p>
+                </div>
+            </div>
+
+            <div id="searchPanel" class="hidden glass p-5 rounded-3xl shadow-sm space-y-4">
+                <div>
+                    <label for="registrationSearch" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Buscar asistente</label>
+                    <div class="flex gap-3">
+                        <input type="search" id="registrationSearch" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#D40000] focus:ring-2 focus:ring-[#D40000]/20 outline-none transition-all" placeholder="Nombre o correo">
+                        <button type="button" onclick="runRegistrationSearch()" class="bni-gradient text-white font-bold px-5 rounded-xl shadow hover:opacity-90 transition-all">
+                            Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="searchResults" class="space-y-3">
+                    <p class="text-sm text-gray-400">Escribe un nombre o correo para encontrar asistentes de este evento.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Result Modal -->
+        <div id="resultModal" class="fixed inset-0 z-[100] hidden items-end sm:items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeResult()"></div>
+            <div id="modalContent" class="glass w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in slide-in-from-bottom duration-300">
+                <!-- Status Icon -->
+                <div id="statusIcon" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto -mt-16 mb-6 shadow-xl border-4 border-white">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+
+                <div class="text-center space-y-4">
+                    <h2 id="guestName" class="text-2xl font-bold text-gray-900">Juan Pérez</h2>
+                    <div id="guestCompany" class="text-sm text-gray-500 font-light italic">Tech Solutions SAC</div>
+                    
+                    <div class="grid grid-cols-2 gap-3 py-4">
+                        <div class="bg-gray-50 p-3 rounded-2xl relative group">
+                            <span class="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Mesa</span>
+                            <div class="flex items-center justify-center gap-1">
+                                <span id="guestTable" class="text-xl font-bold text-[#D40000]">07</span>
+                                <button onclick="editTable()" class="p-1 hover:bg-gray-200 rounded transition-colors" title="Editar mesa">
+                                    <svg class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-2xl">
+                            <span class="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Tipo</span>
+                            <span id="guestType" class="text-xs font-bold text-gray-800 truncate">Socio BNI</span>
+                        </div>
+                    </div>
+
+                    <p id="statusMsg" class="text-sm text-gray-700 bg-gray-100 py-3 px-4 rounded-xl">Asistencia registrada con éxito.</p>
+                </div>
+
+                <button onclick="closeResult()" class="w-full bg-[#121117] text-white font-bold py-4 rounded-2xl mt-6 shadow-lg shadow-black/20 hover:opacity-90 active:scale-[0.98] transition-all">
+                    Continuar Escaneando
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="p-4 text-center">
+        <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium">&copy; 2026 Global S1 • v2.0 Premium</p>
+    </footer>
+
+    <!-- Beep Sound -->
+    <audio id="beepSuccess" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+    <audio id="beepError" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
+
+    <script>
+        const API_BASE = "http://localhost:53001/api";
+        let currentEventId = localStorage.getItem('selectedEventId');
+        let currentEventName = localStorage.getItem('selectedEventName');
+        let html5QrCode = null;
+        let currentMode = 'scan';
+
+        // --- Auth Management ---
+        const token = localStorage.getItem('token');
+        if (token) {
+            showEventSection();
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    localStorage.setItem('token', data.data.token);
+                    showEventSection();
+                } else {
+                    alert('Credenciales inválidas');
+                }
+            } catch (err) {
+                alert('Error de conexión con el servidor');
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.reload();
+        });
+
+        document.getElementById('togglePasswordBtn').addEventListener('click', () => {
+            const passwordInput = document.getElementById('password');
+            const icon = document.getElementById('togglePasswordIcon');
+            const isHidden = passwordInput.type === 'password';
+
+            passwordInput.type = isHidden ? 'text' : 'password';
+            document.getElementById('togglePasswordBtn').setAttribute(
+                'aria-label',
+                isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña'
+            );
+            document.getElementById('togglePasswordBtn').setAttribute(
+                'title',
+                isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña'
+            );
+
+            icon.innerHTML = isHidden
+                ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.223-3.592M9.88 9.88a3 3 0 104.24 4.24"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.1 6.1A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.963 9.963 0 01-4.132 5.411M3 3l18 18"></path>'
+                : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>';
+        });
+
+        // --- Sections Management ---
+        function showEventSection() {
+            document.getElementById('logoutBtn').classList.remove('hidden');
+            document.getElementById('loginSec').classList.add('hidden');
+            document.getElementById('eventSec').classList.remove('hidden');
+            document.getElementById('scannerSec').classList.add('hidden');
+            fetchEvents();
+        }
+
+        async function fetchEvents() {
+            try {
+                const res = await fetch(`${API_BASE}/events/active`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                
+                const list = document.getElementById('eventList');
+                list.innerHTML = '';
+
+                if (data.data.length === 0) {
+                    list.innerHTML = '<p class="text-center text-gray-400 py-4">No hay eventos activos hoy.</p>';
+                    return;
+                }
+
+                data.data.forEach(event => {
+                    const date = new Date(event.event_date).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
+                    const btn = document.createElement('button');
+                    btn.className = "w-full text-left bg-gray-50 p-4 rounded-2xl border border-gray-100 hover:border-[#D40000] hover:bg-white hover:shadow-md transition-all flex items-center justify-between group";
+                    btn.innerHTML = `
+                        <div>
+                            <span class="block text-xs font-bold text-[#D40000] uppercase tracking-widest">${date}</span>
+                            <span class="text-lg font-bold text-gray-800 group-hover:text-[#D40000] transition-colors">${event.name}</span>
+                        </div>
+                        <svg class="w-6 h-6 text-gray-300 group-hover:text-[#D40000]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    `;
+                    btn.onclick = () => selectEvent(event.id, event.name);
+                    list.appendChild(btn);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function selectEvent(id, name) {
+            currentEventId = id;
+            currentEventName = name;
+            localStorage.setItem('selectedEventId', id);
+            localStorage.setItem('selectedEventName', name);
+            showScanner();
+        }
+
+        function changeEvent() {
+            stopScanner();
+            showEventSection();
+        }
+
+        function showScanner() {
+            document.getElementById('eventSec').classList.add('hidden');
+            document.getElementById('scannerSec').classList.remove('hidden');
+            document.getElementById('selectedEventName').innerText = currentEventName;
+            setScannerMode('scan');
+        }
+
+        function initScanner() {
+            if (html5QrCode) return;
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess
+            ).catch(err => {
+                alert("Error al iniciar cámara: " + err);
+            });
+        }
+
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().catch(() => {}).finally(() => {
+                    html5QrCode = null;
+                    const reader = document.getElementById('reader');
+                    if (reader) reader.innerHTML = '';
+                });
+            }
+        }
+
+        function setScannerMode(mode) {
+            currentMode = mode;
+            const scanPanel = document.getElementById('scanPanel');
+            const searchPanel = document.getElementById('searchPanel');
+            const scanBtn = document.getElementById('scanModeBtn');
+            const searchBtn = document.getElementById('searchModeBtn');
+
+            if (mode === 'scan') {
+                scanPanel.classList.remove('hidden');
+                searchPanel.classList.add('hidden');
+                scanBtn.classList.add('active');
+                searchBtn.classList.remove('active');
+                initScanner();
+                return;
+            }
+
+            scanPanel.classList.add('hidden');
+            searchPanel.classList.remove('hidden');
+            searchBtn.classList.add('active');
+            scanBtn.classList.remove('active');
+            stopScanner();
+        }
+
+        async function onScanSuccess(decodedText) {
+            lastScannedUUID = decodedText;
+            // Success sound
+            document.getElementById('beepSuccess').play();
+            
+            // Send to API
+            try {
+                const res = await fetch(`${API_BASE}/registrations/confirm/${decodedText}`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showResult(true, data);
+                } else {
+                    document.getElementById('beepError').play();
+                    showResult(false, data);
+                }
+            } catch (err) {
+                document.getElementById('beepError').play();
+                showResult(false, { message: "Error técnico en el servidor." });
+            }
+        }
+
+        function showResult(isSuccess, payload) {
+            const modal = document.getElementById('resultModal');
+            const icon = document.getElementById('statusIcon');
+            const name = document.getElementById('guestName');
+            const company = document.getElementById('guestCompany');
+            const table = document.getElementById('guestTable');
+            const type = document.getElementById('guestType');
+            const msg = document.getElementById('statusMsg');
+
+            if (isSuccess) {
+                icon.className = icon.className.replace('bg-red-500', 'bg-green-500').replace('bg-gray-400', 'bg-green-500');
+                icon.innerHTML = '<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
+                const attendee = payload.data;
+                name.innerText = attendee.fullName || "Sin Nombre";
+                company.innerText = attendee.company || "Empresa no registrada";
+                table.innerText = attendee.table_number || "—";
+                type.innerText = attendee.visitor_type === 'member' ? "Socio BNI" : "Invitado";
+                msg.innerText = payload.message;
+                msg.className = "text-sm font-medium text-green-800 bg-green-50 py-3 px-4 rounded-xl border border-green-100";
+            } else {
+                icon.className = icon.className.replace('bg-green-500', 'bg-red-500').replace('bg-gray-400', 'bg-red-500');
+                icon.innerHTML = '<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                const attendee = payload.data || {};
+                name.innerText = attendee.first_name ? `${attendee.first_name} ${attendee.last_name}` : "Error de Lectura";
+                company.innerText = attendee.company || "—";
+                table.innerText = attendee.table_number || "—";
+                type.innerText = attendee.visitor_type || "—";
+                msg.innerText = payload.message;
+                msg.className = "text-sm font-medium text-red-800 bg-red-50 py-3 px-4 rounded-xl border border-red-100";
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Pause scanner
+            if (html5QrCode && currentMode === 'scan') html5QrCode.pause();
+        }
+
+        function closeResult() {
+            document.getElementById('resultModal').classList.add('hidden');
+            document.getElementById('resultModal').classList.remove('flex');
+            
+            // Resume scanner
+            if (html5QrCode && currentMode === 'scan') html5QrCode.resume();
+        }
+
+        let lastScannedUUID = null;
+
+        async function editTable() {
+            if (!lastScannedUUID) return;
+            const newTable = prompt("Ingrese el nuevo número de mesa:");
+            if (newTable === null) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/registrations/${lastScannedUUID}`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ table_number: newTable })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('guestTable').innerText = newTable;
+                    alert("Número de mesa actualizado correctamente.");
+                } else {
+                    alert("Error: " + data.message);
+                }
+            } catch (err) {
+                alert("Error de conexión");
+            }
+        }
+
+        async function runRegistrationSearch() {
+            const search = document.getElementById('registrationSearch').value.trim();
+            const results = document.getElementById('searchResults');
+
+            if (!search) {
+                results.innerHTML = '<p class="text-sm text-gray-400">Escribe un nombre o correo para encontrar asistentes de este evento.</p>';
+                return;
+            }
+
+            results.innerHTML = '<p class="text-sm text-gray-400">Buscando...</p>';
+
+            try {
+                const res = await fetch(`${API_BASE}/registrations?event_id=${currentEventId}&search=${encodeURIComponent(search)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+
+                if (!data.success || !Array.isArray(data.data) || data.data.length === 0) {
+                    results.innerHTML = '<p class="text-sm text-gray-400">No encontramos asistentes con ese criterio.</p>';
+                    return;
+                }
+
+                results.innerHTML = data.data.map((registration) => `
+                    <button type="button" class="w-full text-left bg-white border border-gray-200 hover:border-[#D40000] hover:shadow-md rounded-2xl p-4 transition-all" onclick="selectSearchResult('${registration.id}')">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="text-base font-bold text-gray-900">${registration.full_name || 'Sin nombre'}</div>
+                                <div class="text-sm text-gray-500">${registration.email || 'Sin correo'}</div>
+                                <div class="text-xs text-gray-400 mt-1">${registration.company || 'Sin empresa'}</div>
+                            </div>
+                            <span class="text-[10px] uppercase tracking-widest font-bold text-[#D40000]">${registration.status || 'Activo'}</span>
+                        </div>
+                    </button>
+                `).join('');
+            } catch (error) {
+                results.innerHTML = '<p class="text-sm text-red-500">No se pudo realizar la búsqueda.</p>';
+            }
+        }
+
+        function selectSearchResult(uuid) {
+            if (!uuid) return;
+            onScanSuccess(uuid);
+        }
+
+        document.getElementById('registrationSearch').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                runRegistrationSearch();
+            }
+        });
+
+        // Service Worker registration (already in head but good to keep or move)
+    </script>
+</body>
+</html>

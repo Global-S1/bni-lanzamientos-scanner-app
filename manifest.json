@@ -1,0 +1,22 @@
+{
+  "name": "BNI Premium QR Scanner",
+  "version": "1.348",
+  "short_name": "BNI Scanner",
+  "start_url": "./index.html",
+  "scope": "/premium-qr-scanner/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#D40000",
+  "icons": [
+    {
+      "src": "premium-qr-scanner/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "premium-qr-scanner/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
